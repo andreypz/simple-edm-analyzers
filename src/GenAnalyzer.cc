@@ -20,7 +20,6 @@
 
 // system include files
 #include <memory>
-#include <memory>
 #include <iostream>
 #include <fstream>
 #include <string>

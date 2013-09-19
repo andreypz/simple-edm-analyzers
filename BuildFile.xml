@@ -5,4 +5,10 @@
 <use name="DataFormats/Math"/>
 <use name="DataFormats/Common"/>
 <use name="DataFormats/HepMCCandidate"/>
+
+<use name="DataFormats/EgammaCandidates"/>
+<use name="DataFormats/EgammaReco"/>
+#<use name="EgammaAnalysis/ElectronTools"/>
+<use name="RecoEgamma/EgammaTools"/>
+
 <flags EDM_PLUGIN="1"/>
