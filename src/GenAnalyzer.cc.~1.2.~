@@ -1,0 +1,123 @@
+// -*- C++ -*-
+//
+// Package:    GenAnalyzer
+// Class:      GenAnalyzer
+// 
+/**\class GenAnalyzer GenAnalyzer.cc NWU/GenAnalyzer/src/GenAnalyzer.cc
+
+ Description: [one line class summary]
+
+ Implementation:
+     [Notes on implementation]
+*/
+//
+// Original Author:  Andrey Pozdnyakov
+//         Created:  Wed Jun 12 11:55:07 CDT 2013
+// $Id: GenAnalyzer.cc,v 1.2 2013/06/12 17:22:20 andrey Exp $
+//
+//
+
+
+// system include files
+#include <memory>
+#include <memory>
+#include <iostream>
+#include <fstream>
+#include <string>
+
+
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+
+#include "TTree.h"
+#include "HistManager.h"
+
+using namespace std;
+using namespace edm;
+
+class GenAnalyzer : public edm::EDAnalyzer {
+   public:
+      explicit GenAnalyzer(const edm::ParameterSet&);
+      ~GenAnalyzer();
+
+      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+
+
+   private:
+      virtual void beginJob() ;
+      virtual void analyze(const edm::Event&, const edm::EventSetup&);
+      virtual void endJob() ;
+
+      virtual void beginRun(edm::Run const&, edm::EventSetup const&);
+      virtual void endRun(edm::Run const&, edm::EventSetup const&);
+      virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
+      virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
+
+      // ----------member data ---------------------------
+
+  HistManager *hists;
+  TFile *outFile;
+  TTree *fTree;
+
+};
+
+
+GenAnalyzer::GenAnalyzer(const edm::ParameterSet& iConfig)
+{}
+
+
+GenAnalyzer::~GenAnalyzer()
+{
+  delete hists;
+  delete outFile;
+}
+
+void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+  if(!iEvent.isRealData()) {
+    cout<<"event"<<endl;
+  }
+
+  else
+    throw cms::Exception("GenAnalyzer")<<"This is supposed to be a Gen level analyzer!!"<<endl;
+}
+
+void GenAnalyzer::beginJob()
+{
+  outFile = new TFile("output.root","recreate");
+  hists   = new HistManager(outFile);
+  outFile->cd();
+
+}
+
+void  GenAnalyzer::endJob() 
+{ }
+
+void  GenAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+{ }
+
+void  GenAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
+{ }
+
+void  GenAnalyzer::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{ }
+
+void  GenAnalyzer::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{ }
+
+void GenAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  //The following says we do not know what parameters are allowed so do no validation
+  // Please change this to state exactly what you do use, even if it is no parameters
+  edm::ParameterSetDescription desc;
+  desc.setUnknown();
+  descriptions.addDefault(desc);
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(GenAnalyzer);
