@@ -13,19 +13,12 @@
 //
 // Original Author:  Andrey Pozdnyakov
 //         Created:  Thu Sep 19 15:13:20 CDT 2013
-// $Id$
-//
-//
 
-
-// system include files
 #include <memory>
 #include <iostream>
 #include <fstream>
 #include <string>
 
-
-// user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 
@@ -43,7 +36,8 @@
 #include "DataFormats/EgammaCandidates/interface/PhotonFwd.h"
 #include "DataFormats/EgammaCandidates/interface/Conversion.h"
 #include "DataFormats/EgammaReco/interface/SuperCluster.h"
-//#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
+#include "DataFormats/GsfTrackReco/interface/GsfTrackFwd.h"
 
 #include "TTree.h"
 #include "TLorentzVector.h"
@@ -95,18 +89,19 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if(iEvent.isRealData())
     exit(0);
 
-  cout<<"event  "<<iEvent.id().event()<<endl;
+  //cout<<"event  "<<iEvent.id().event()<<endl;
 
   Handle<reco::GenParticleCollection> genParticleColl;
   iEvent.getByLabel("genParticles", genParticleColl);
 
   vector<TLorentzVector> mu_plus, mu_minus, el_plus, el_minus;
   TLorentzVector gen_l1, gen_l2,gen_gamma;
+  TLorentzVector gen_lPt1, gen_lPt2;
 
   Int_t zStarId = 23; //normal
   //Int_t zStarId = 3000001; //a hack
 
-  UInt_t nmu=0, nel = 0;
+  UInt_t nel = 0;
   for (reco::GenParticleCollection::const_iterator it = genParticleColl->begin(); it != genParticleColl->end(); ++it) {
     if (abs(it->pdgId()) == 11 &&   it->mother()->pdgId() == zStarId ) //for pythia6
       {
@@ -124,16 +119,25 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         hists->fill1DHist(it->pdgId(),"pdg_el","Number of electrons from a Z", 40,-20,20,  1, "");
       }
 
-
     if (it->pdgId() == 22 && (it->mother()->pdgId() == 25 || it->mother()->pdgId() == zStarId)) //gamma from the higgs or a Z!
       {
         //cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
-        hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,0,10,  1, "");
+        hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,-2,2,  1, "");
         gen_gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy());
       }
 
 
 
+  }
+
+
+  if (gen_l1.Pt() > gen_l2.Pt()){
+    gen_lPt1 = gen_l1;
+    gen_lPt2 = gen_l2;
+  }
+  else{
+    gen_lPt1 = gen_l2;
+    gen_lPt2 = gen_l1;
   }
 
   nel = el_minus.size()+el_plus.size();
@@ -144,12 +148,10 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   TLorentzVector l1,l2;
 
 
-
   edm::Handle<reco::ConversionCollection> hConversions;
   iEvent.getByLabel("allConversions", hConversions);
 
   if (nel>=2 && gen_gamma.Pt()!=0) {
-
 
     Handle<reco::GsfElectronCollection > electrons;
     iEvent.getByLabel("gsfElectrons", electrons);
@@ -169,22 +171,61 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     //iEvent.getByLabel(edm::InputTag("eleRegressionEnergy","eneErrorRegForGsfEle"), regErr_handle);
     //const edm::ValueMap<double> ele_regErr = (*regErr_handle.product());
 
+
+    Handle<reco::TrackCollection> generalTracks;
+    iEvent.getByLabel("generalTracks", generalTracks);
+    
+    Handle<reco::GsfTrackCollection> gsfTracks;
+    iEvent.getByLabel("electronGsfTracks", gsfTracks);
+    
     Int_t eee=0;
     for (vector<reco::GsfElectron>::const_iterator iElectron = electrons->begin(); iElectron != electrons->end(); ++iElectron) {
       eee++;
-      if (iElectron->pt() < 5) continue;
-      hists->fill1DHist(iElectron->pt(),"el_pt","pt of an ele", 40,0,200,  1, "");
-
+      if (iElectron->pt() < 7) continue;
+      hists->fill1DHist(iElectron->pt(),"el_pt","pt of an ele", 50,0,200,  1, "");
       TLorentzVector el(iElectron->px(), iElectron->py(), iElectron->pz(), iElectron->energy());
 
-      hists->fill1DHist(el.DeltaR(gen_l1)   ,Form("reco_l%i_gen_l1_deltaR",eee),"reco_gen_l1_deltaR",100,0,5, 1,"");
-      hists->fill1DHist(el.DeltaR(gen_l2)   ,Form("reco_l%i_gen_l2_deltaR",eee),"reco_gen_l2_deltaR",100,0,5, 1,"");
-      hists->fill1DHist(el.DeltaR(gen_gamma),Form("reco_l%i_gen_gamma_deltaR",eee),"reco_gen_gamma_deltaR",100,0,5, 1,"");
+      hists->fill1DHist(el.DeltaR(gen_lPt1),   Form("reco_l%i_gen_lPt1_deltaR",   eee), "reco_gen_l1_deltaR",   100,0,5, 1,"");
+      hists->fill1DHist(el.DeltaR(gen_lPt2),   Form("reco_l%i_gen_lPt2_deltaR",   eee), "reco_gen_l2_deltaR",   100,0,5, 1,"");
+      hists->fill1DHist(el.DeltaR(gen_gamma),Form("reco_l%i_gen_gamma_deltaR",eee), "reco_gen_gamma_deltaR",100,0,5, 1,"");
+
+      reco::GsfTrackRef gsf = iElectron->gsfTrack();
+      //TVector3 t1(gsf->px(), gsf->py(), gsf->pz());
+
+      hists->fill1DHist(fabs(gsf->pt() - gen_lPt1.Pt())/gen_lPt1.Pt() , Form("gsf_l%i_track_ptdiff_1", eee), "pt diff of gsf track and gen lPt1", 100, 0,0.5, 1, "");
+      hists->fill1DHist(fabs(gsf->pt() - gen_lPt2.Pt())/gen_lPt2.Pt() , Form("gsf_l%i_track_ptdiff_2", eee), "pt diff of gsf track and gen lPt2", 100, 0,0.5, 1, "");
+
+      Int_t nnn=0;
+      if (el.DeltaR(gen_l1) < 0.2 || el.DeltaR(gen_l2) < 0.2)
+        for (vector<reco::GsfTrack>::const_iterator gtr = gsfTracks->begin(); gtr != gsfTracks->end(); ++gtr) {
+          if (gtr->pt()<5) continue;
+          
+          TVector3 t(gtr->px(), gtr->py(), gtr->pz());
+
+          hists->fill1DHist(t.DeltaR(el.Vect()), "gsftrack_ele_dR", "track ele dR", 100, 0, 0.5, 1, "");
+          if (t.DeltaR(el.Vect())< 0.5)
+            nnn++;
+        }
+      hists->fill1DHist(nnn, "ntracks_in05","n tracks in 0.5 around electron", 10,0,10,1,"");
     }
 
     hists->fill1DHist(electrons->size(),"reco_nel","Number of reco gsf electrons", 10,0,10,  1, "");
 
+
+    Handle<vector<reco::Photon> > photons;
+    iEvent.getByLabel("photons", photons);
+    Int_t ppp = 0;
+    for (vector<reco::Photon>::const_iterator iPhoton = photons->begin(); iPhoton != photons->end() ; ++iPhoton) {
+      TLorentzVector ph(iPhoton->px(), iPhoton->py(), iPhoton->pz(), iPhoton->p());
+
+      hists->fill1DHist(ph.DeltaR(gen_lPt1),   Form("reco_ph%i_gen_lPt1_deltaR",   ppp),"reco_gen_l1_deltaR",   100,0,5, 1,"");
+      hists->fill1DHist(ph.DeltaR(gen_lPt2),   Form("reco_ph%i_gen_lPt2_deltaR",   ppp),"reco_gen_l2_deltaR",   100,0,5, 1,"");
+      hists->fill1DHist(ph.DeltaR(gen_gamma),Form("reco_ph%i_gen_gamma_deltaR",ppp),"reco_gen_gamma_deltaR",100,0,5, 1,"");
+
+    }
+
   }
+
 }
 
 

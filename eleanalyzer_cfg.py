@@ -1,18 +1,25 @@
 import FWCore.ParameterSet.Config as cms
+import FWCore.ParameterSet.VarParsing as VarParsing
+
+
+options = VarParsing.VarParsing ('analysis')
+options.maxEvents = -1
+options.loadFromFile('inputFiles','dalitz_short.txt')
+options.parseArguments()
 
 process = cms.Process("Demo")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
+process.MessageLogger.cerr.threshold = 'INFO'
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
-    fileNames = cms.untracked.vstring(
-'/store/user/andrey/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/AODSIM/39bf61f738ba3bdb8860f0848073cc88/aodsim_100_1_BGG.root'
-        
-    )
-)
+    fileNames = cms.untracked.vstring(options.inputFiles)
+                            )
 
 process.demo = cms.EDAnalyzer('EleAnalyzer'
 )
