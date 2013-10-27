@@ -96,7 +96,8 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     vector<TLorentzVector> mu_plus, mu_minus, el_plus, el_minus;
     TLorentzVector gamma;
 
-    Int_t zStarId = 23; //normal
+    //Int_t zStarId = 23; //normal
+    Int_t zStarId = 443; //jpsi
     //Int_t zStarId = 3000001; //a hack
 
     UInt_t nmu=0, nel = 0;
@@ -121,13 +122,13 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
       if (it->pdgId() == zStarId && it->mother()->pdgId()==25) //
         {          
-          //cout<<"its a Z, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
+          cout<<"its a Z, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
           hists->fill1DHist(it->mass(),"z_mass","Z mass", 50,0,150,  1, "");
         }
 
       if (it->pdgId() == 22 && (it->mother()->pdgId() == 25 || it->mother()->pdgId() == zStarId)) //gamma from the higgs or a Z!
         {          
-          //cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
+          cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
           hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,0,10,  1, "");
           gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy()); 
         }
@@ -244,7 +245,7 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
         //c3 = l1_ZFrame.Vect().Unit().Dot(b3.Unit());
         c3 = cos(TMath::Pi() - l1_ZFrame.Angle(b3));
-        cout<<"Debug \n"<<"\t\t c1 = "<<costheta1<<"\n \t\t c2 = "<<c2<<"\n \t\t c3 = "<<c3<<"\n \t\t c4 = "<<endl;
+        //cout<<"Debug \n"<<"\t\t c1 = "<<costheta1<<"\n \t\t c2 = "<<c2<<"\n \t\t c3 = "<<c3<<"\n \t\t c4 = "<<endl;
         //costheta1 = c3;
 
         
