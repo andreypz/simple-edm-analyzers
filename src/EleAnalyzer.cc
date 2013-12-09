@@ -39,6 +39,9 @@
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrackFwd.h"
 
+#include "DataFormats/EgammaCandidates/interface/Conversion.h"
+#include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
+
 #include "TTree.h"
 #include "TLorentzVector.h"
 #include "HistManager.h"
@@ -63,8 +66,10 @@ class EleAnalyzer : public edm::EDAnalyzer {
       virtual void endRun(edm::Run const&, edm::EventSetup const&);
       virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
       virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
-
-      // ----------member data ---------------------------
+  
+  
+  virtual bool TrackSelection(reco::Track );
+  // ----------member data ---------------------------
 
   HistManager *hists;
   TFile *outFile;
@@ -89,6 +94,7 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if(iEvent.isRealData())
     exit(0);
 
+  UInt_t evNum = iEvent.id().event();
   //cout<<"event  "<<iEvent.id().event()<<endl;
 
   Handle<reco::GenParticleCollection> genParticleColl;
@@ -126,8 +132,6 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         gen_gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy());
       }
 
-
-
   }
 
 
@@ -146,6 +150,19 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   TLorentzVector z(0,0,0,0);
   TLorentzVector h(0,0,0,0);
   TLorentzVector l1,l2;
+
+
+  if (gen_lPt1.Pt() < 20 || gen_lPt2.Pt() < 5) return;
+  if (fabs(gen_lPt1.Eta()) > 2.5 || fabs(gen_lPt2.Eta()) >2.5) return;
+  hists->fill1DHist(nel,"gen_nel_acc","Number of gen electrons from a Z", 10,0,10,  1, "");
+
+  Float_t gen_Mll = (gen_l1+gen_l2).M();
+  Float_t gen_qT  = (gen_l1+gen_l2).Pt();
+  Float_t gen_dR  = gen_l1.DeltaR(gen_l2);
+
+  if (gen_Mll > 2) return;
+
+  hists->fill1DHist(nel,"gen_nel_mll","Number of gen electrons from a Z", 10,0,10,  1, "");
 
 
   edm::Handle<reco::ConversionCollection> hConversions;
@@ -178,53 +195,243 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     Handle<reco::GsfTrackCollection> gsfTracks;
     iEvent.getByLabel("electronGsfTracks", gsfTracks);
     
-    Int_t eee=0;
+    cout<<"Event = "<<evNum<<endl;
+
+    cout<<"    gen1 pt="<<gen_lPt1.Pt()<<"  eta="<<gen_lPt1.Eta()<<" phi="<<gen_lPt1.Phi()<<endl;
+    cout<<"    gen2 pt="<<gen_lPt2.Pt()<<"  eta="<<gen_lPt2.Eta()<<" phi="<<gen_lPt2.Phi()<<endl;
+    cout<<"GEN INFO:  dR = "<<gen_lPt1.DeltaR(gen_lPt2)<<"  Mll= "<<gen_Mll<<endl;
+
+
+
+    TLorentzVector el1,el2;
+
+    Int_t eee=0,eee7=0,eeedr=0;
     for (vector<reco::GsfElectron>::const_iterator iElectron = electrons->begin(); iElectron != electrons->end(); ++iElectron) {
       eee++;
-      if (iElectron->pt() < 7) continue;
       hists->fill1DHist(iElectron->pt(),"el_pt","pt of an ele", 50,0,200,  1, "");
-      TLorentzVector el(iElectron->px(), iElectron->py(), iElectron->pz(), iElectron->energy());
+      if (iElectron->pt() < 15) continue;
 
-      hists->fill1DHist(el.DeltaR(gen_lPt1),   Form("reco_l%i_gen_lPt1_deltaR",   eee), "reco_gen_l1_deltaR",   100,0,5, 1,"");
-      hists->fill1DHist(el.DeltaR(gen_lPt2),   Form("reco_l%i_gen_lPt2_deltaR",   eee), "reco_gen_l2_deltaR",   100,0,5, 1,"");
-      hists->fill1DHist(el.DeltaR(gen_gamma),Form("reco_l%i_gen_gamma_deltaR",eee), "reco_gen_gamma_deltaR",100,0,5, 1,"");
+      eee7++;
+      if(eee7==1) 
+        el1.SetXYZM(iElectron->px(), iElectron->py(), iElectron->pz(), 0);
+      if(eee7==2) 
+        el2.SetXYZM(iElectron->px(), iElectron->py(), iElectron->pz(), 0);
+
+
+      TLorentzVector el(iElectron->px(), iElectron->py(), iElectron->pz(), iElectron->energy());
+      if (el.DeltaR(gen_l1) > 0.3 && el.DeltaR(gen_l2) > 0.3) continue;
+      eeedr++;
+      
+      hists->fill1DHist(el.DeltaR(gen_lPt1),  Form("reco_l%i_gen_lPt1_deltaR", eeedr), "reco_gen_lPt1_deltaR",   100,0,0.3, 1,"");
+      hists->fill1DHist(el.DeltaR(gen_lPt2),  Form("reco_l%i_gen_lPt2_deltaR", eeedr), "reco_gen_lPt2_deltaR",   100,0,0.3, 1,"");
+      //hists->fill1DHist(el.DeltaR(gen_gamma), Form("reco_l%i_gen_gamma_deltaR",eee), "reco_gen_gamma_deltaR",100,0,5, 1,"");
 
       reco::GsfTrackRef gsf = iElectron->gsfTrack();
+      reco::TrackRef    ctf = iElectron->closestTrack(); //this returns the closest ctf track
+
+      cout<<eee <<" ELECTRON,  Pt = "<<iElectron->pt()<<endl;
+      
+      if (gsf.isNonnull())
+        cout<<eee<<"  gsf pt="<<gsf->pt()<<"  eta="<<gsf->eta()<<" phi="<<gsf->phi()<<endl;
+      if (ctf.isNonnull())
+        cout<<eee<<"  ctf pt="<<ctf->pt()<<"  eta="<<ctf->eta()<<" phi="<<ctf->phi()<<endl;
+
       //TVector3 t1(gsf->px(), gsf->py(), gsf->pz());
 
-      hists->fill1DHist(fabs(gsf->pt() - gen_lPt1.Pt())/gen_lPt1.Pt() , Form("gsf_l%i_track_ptdiff_1", eee), "pt diff of gsf track and gen lPt1", 100, 0,0.5, 1, "");
-      hists->fill1DHist(fabs(gsf->pt() - gen_lPt2.Pt())/gen_lPt2.Pt() , Form("gsf_l%i_track_ptdiff_2", eee), "pt diff of gsf track and gen lPt2", 100, 0,0.5, 1, "");
+      hists->fill1DHist(fabs(gsf->pt() - gen_lPt1.Pt())/gen_lPt1.Pt() , Form("gsf_l%i_track_ptdiff_1", eeedr), "pt diff of gsf track and gen lPt1", 100, 0,0.5, 1, "");
+      hists->fill1DHist(fabs(gsf->pt() - gen_lPt2.Pt())/gen_lPt2.Pt() , Form("gsf_l%i_track_ptdiff_2", eeedr), "pt diff of gsf track and gen lPt2", 100, 0,0.5, 1, "");
 
-      Int_t nnn=0;
-      if (el.DeltaR(gen_l1) < 0.2 || el.DeltaR(gen_l2) < 0.2)
-        for (vector<reco::GsfTrack>::const_iterator gtr = gsfTracks->begin(); gtr != gsfTracks->end(); ++gtr) {
-          if (gtr->pt()<5) continue;
+      Int_t nnn03=0, nnn04=0, ntr=0;
+
+      //reco::GsfTrackRefVector amb = iElectron->ambiguousTracks();
+      TLorentzVector amb1,amb2;
+
+      for (reco::GsfTrackRefVector::const_iterator gtr = iElectron->ambiguousGsfTracksBegin(); gtr != iElectron->ambiguousGsfTracksEnd(); ++gtr)
+        {
+          ntr++;
+          if (iElectron->gsfTrack()==(*gtr))
+            cout<<"Same ambig track"<<endl;
+          cout<<ntr<<" ambigious loop pt="<<(*gtr)->pt()<<" eta="<<(*gtr)->eta()<<" "<<" phi="<<(*gtr)->phi()<<endl;
           
-          TVector3 t(gtr->px(), gtr->py(), gtr->pz());
+          TLorentzVector t;
+          t.SetXYZM((*gtr)->px(), (*gtr)->py(), (*gtr)->pz(), 0);
+          hists->fill1DHist(t.DeltaR(gen_lPt1),  Form("reco_ambig%i_forEl%i_gen_lPt1_deltaR", ntr,eeedr), "reco_gen_lPt1_deltaR",   100,0,0.3, 1,"");
 
-          hists->fill1DHist(t.DeltaR(el.Vect()), "gsftrack_ele_dR", "track ele dR", 100, 0, 0.5, 1, "");
-          if (t.DeltaR(el.Vect())< 0.5)
-            nnn++;
+          if (ntr==1)
+            amb1.SetXYZM((*gtr)->px(), (*gtr)->py(), (*gtr)->pz(), 0);
+          if (ntr==2)
+            amb2.SetXYZM((*gtr)->px(), (*gtr)->py(), (*gtr)->pz(), 0);
+        
+
         }
-      hists->fill1DHist(nnn, "ntracks_in05","n tracks in 0.5 around electron", 10,0,10,1,"");
+      hists->fill1DHist(ntr, Form("nAmbig_GSFtracks_forEl%i", eeedr),"gsf tracks", 10,0,10,1,"");
+
+      if (ntr>1){
+        //there are ambigious tracks..
+        Float_t tr_Mll = (amb1+amb2).M();
+        Float_t tr_dR  = amb1.DeltaR(amb2);
+        Float_t tr_qT  = (amb1+amb2).Pt();
+        
+        hists->fillProfile(gen_Mll, tr_Mll, "gen_tr_Mll",";gen Mll;tr Mll", 100, 0,20, 0,20, 1,"");
+        hists->fillProfile(gen_qT, tr_qT,  "gen_tr_qT",";gen qT;tr qT", 100, 0,100, 0,100, 1,"");
+        hists->fillProfile(gen_dR, tr_dR, "genDr_trDr",";gen dR;tr dR", 100, 0,0.5, 0,0.5, 1,"");
+      }
+
+      nnn03=0, nnn04=0, ntr=0;
+      for (vector<reco::GsfTrack>::const_iterator gtr = gsfTracks->begin(); gtr != gsfTracks->end(); ++gtr) {
+        if (gtr->pt()<4) continue;
+        ntr++;
+        if (gtr->pt() == gsf->pt()){
+          cout<<ntr<<"  <<-- this one!"<<endl;
+        }
+        cout<<ntr<<"  gsf loop pt="<<gtr->pt()<<"  eta="<<gtr->eta()<<" "<<" phi="<<gtr->phi()<<endl;
+    
+        TLorentzVector t;
+        t.SetXYZM(gtr->px(), gtr->py(), gtr->pz(), 0);
+
+        hists->fill1DHist(t.DeltaR(el), Form("gsftrack_ele%i_dR", eeedr), "track ele dR", 100, 0, 0.5, 1, "");
+        if (t.DeltaR(el)< 0.4)
+          nnn04++;
+        if (t.DeltaR(el)< 0.3)
+          nnn03++;
+        
+      }
+
+      hists->fill1DHist(nnn04, Form("nGSFtracks_in04_forEl%i", eeedr),"gsf tracks in 0.4 around electron", 10,0,10,1,"");
+      hists->fill1DHist(nnn03, Form("nGSFtracks_in03_forEl%i", eeedr),"gsf tracks in 0.3 around electron", 10,0,10,1,"");
+
+
+      nnn03=0;nnn04=0;ntr=0;
+      for (vector<reco::Track>::const_iterator gtr = generalTracks->begin(); gtr != generalTracks->end(); ++gtr) {
+        if (gtr->pt() < 3) continue;
+        if (!gtr->quality(reco::Track::highPurity)) continue;
+        if (! EleAnalyzer::TrackSelection(*gtr)) continue;
+
+
+        TLorentzVector t;
+        t.SetXYZM(gtr->px(), gtr->py(), gtr->pz(), 0);
+        if (t.DeltaR(el)>0.4) continue;
+
+        ntr++;
+        if (ctf.isNonnull() && gtr->pt() == ctf->pt()){
+          cout<<ntr<<"  <<-- this one!"<<endl;
+        }
+
+        cout<<ntr<<"  ctf  loop pt="<<gtr->pt()<<"  eta="<<gtr->eta()<<" "<<" phi="<<gtr->phi()<<endl;
+    
+        
+        hists->fill1DHist(t.DeltaR(el), Form("ctftrack_ele%i_dR",eeedr), "ctf track ele dR", 100, 0, 0.5, 1, "");
+
+        if (t.DeltaR(el)< 0.4)
+          nnn04++;
+        if (t.DeltaR(el)< 0.3)
+          nnn03++;
+        
+      }
+
+      hists->fill1DHist(nnn04, "nCTFtracks_in04","ctf tracks in 0.4 around electron", 10,0,10,1,"");
+      hists->fill1DHist(nnn03, "nCTFtracks_in03","ctf tracks in 0.3 around electron", 10,0,10,1,"");
+      
+    } //end of electrons loop
+
+
+    if (eee7>1){
+      Float_t el_dR = el1.DeltaR(el2);
+      hists->fillProfile(gen_dR, el_dR, "genDr_elDr",";gen dR;el dR", 100, 0,0.5, 0,0.5, 1,"");
     }
 
+
     hists->fill1DHist(electrons->size(),"reco_nel","Number of reco gsf electrons", 10,0,10,  1, "");
+
+
+
+    
+    // *** Conversions ** //
+    // *** *** ** *******//
+    
+    double conv_vtxProb[50];
+    double conv_lxy[50];
+    int conv_nHitsMax[50];
+    int conv_eleind[50];
+
+    edm::Handle<reco::BeamSpot> bsHandle;
+    iEvent.getByLabel("offlineBeamSpot", bsHandle);
+    const reco::BeamSpot &beamspot = *bsHandle.product();
+
+    edm::Handle<reco::ConversionCollection> hConversions;
+    iEvent.getByLabel("allConversions", hConversions);
+
+
+    int iconv=-1;
+    for (reco::ConversionCollection::const_iterator conv = hConversions->begin(); conv!= hConversions->end(); ++conv) {
+      iconv++;
+      conv_vtxProb[iconv]=0.;
+      conv_lxy[iconv]=0.;
+      conv_nHitsMax[iconv]=99;
+      conv_eleind[iconv] = -1;
+
+      reco::Vertex vtx = conv->conversionVertex();
+      if (vtx.isValid()) {
+        int iel=-1;
+        for(reco::GsfElectronCollection::const_iterator gsfEle = electrons->begin(); gsfEle!=electrons->end(); ++gsfEle) {
+          iel++;
+          if (ConversionTools::matchesConversion(*gsfEle, *conv)) {
+            conv_eleind[iconv] = iel;
+            conv_vtxProb[iconv] = TMath::Prob( vtx.chi2(), vtx.ndof() );
+            math::XYZVector mom(conv->refittedPairMomentum());
+            double dbsx = vtx.x() - beamspot.position().x();   
+            double dbsy = vtx.y() - beamspot.position().y();
+            conv_lxy[iconv] = (mom.x()*dbsx + mom.y()*dbsy)/mom.rho();
+            conv_nHitsMax[iconv]=0;
+            for (std::vector<uint8_t>::const_iterator it = conv->nHitsBeforeVtx().begin(); it!=conv->nHitsBeforeVtx().end(); ++it) {
+              if ((*it)>conv_nHitsMax[iconv]) conv_nHitsMax[iconv] = (*it);
+            }
+            break;
+          }
+        }
+
+      }
+      
+
+      
+    }
+
+
+
+
 
 
     Handle<vector<reco::Photon> > photons;
     iEvent.getByLabel("photons", photons);
     Int_t ppp = 0;
     for (vector<reco::Photon>::const_iterator iPhoton = photons->begin(); iPhoton != photons->end() ; ++iPhoton) {
+      
+      if (iPhoton->pt()>15) continue;
       TLorentzVector ph(iPhoton->px(), iPhoton->py(), iPhoton->pz(), iPhoton->p());
+      
+      //hists->fill1DHist(ph.DeltaR(gen_lPt1), Form("reco_ph%i_gen_lPt1_deltaR", ppp),"reco_gen_l1_deltaR",   100,0,5, 1,"");
+      //hists->fill1DHist(ph.DeltaR(gen_lPt2), Form("reco_ph%i_gen_lPt2_deltaR", ppp),"reco_gen_l2_deltaR",   100,0,5, 1,"");
+      //hists->fill1DHist(ph.DeltaR(gen_gamma),Form("reco_ph%i_gen_gamma_deltaR",ppp),"reco_gen_gamma_deltaR",100,0,5, 1,"");
 
-      hists->fill1DHist(ph.DeltaR(gen_lPt1),   Form("reco_ph%i_gen_lPt1_deltaR",   ppp),"reco_gen_l1_deltaR",   100,0,5, 1,"");
-      hists->fill1DHist(ph.DeltaR(gen_lPt2),   Form("reco_ph%i_gen_lPt2_deltaR",   ppp),"reco_gen_l2_deltaR",   100,0,5, 1,"");
-      hists->fill1DHist(ph.DeltaR(gen_gamma),Form("reco_ph%i_gen_gamma_deltaR",ppp),"reco_gen_gamma_deltaR",100,0,5, 1,"");
+      if (ph.DeltaR(gen_lPt1) < 0.3){
+        hists->fill1DHist(iPhoton->nTrkSolidConeDR04(), "ph_fake_nTrkSolidConeDR04","fake nTrkSolidConeDR04", 10,0,10,1,"");
+        hists->fill1DHist(iPhoton->nTrkSolidConeDR03(), "ph_fake_nTrkSolidConeDR03","fake nTrkSolidConeDR03", 10,0,10,1,"");
+      }
+      else 
+        if (ph.DeltaR(gen_lPt1) > 1.5)
+          {
+            hists->fill1DHist(iPhoton->nTrkSolidConeDR04(), "ph_real_nTrkSolidConeDR04","real nTrkSolidConeDR04", 10,0,10,1,"");
+            hists->fill1DHist(iPhoton->nTrkSolidConeDR03(), "ph_real_nTrkSolidConeDR03","real nTrkSolidConeDR03", 10,0,10,1,"");
+          }
 
     }
 
   }
+
+
+
+
+
 
 }
 
@@ -281,6 +488,25 @@ void EleAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions)
   desc.setUnknown();
   descriptions.addDefault(desc);
 }
+
+
+
+bool EleAnalyzer::TrackSelection(reco::Track tr){
+  Float_t normalizedChi2 = tr.normalizedChi2();
+  Float_t numberOfValidTrackerHits = tr.hitPattern().numberOfValidTrackerHits();
+
+  hists->fill1DHist(normalizedChi2,           "tr_normalizedChi2",          "tr_normalizedChi2",           200,0,5, 1,"");
+  hists->fill1DHist(numberOfValidTrackerHits, "tr_numberOfValidTrackerHits","tr_numberOfValidTrackerHits", 30,0,30, 1,"");
+
+  if (normalizedChi2  < 3
+      && numberOfValidTrackerHits > 5)
+    
+    return true;
+
+  else 
+    return false;
+}
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(EleAnalyzer);

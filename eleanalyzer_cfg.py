@@ -13,8 +13,11 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.threshold = 'INFO'
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
+#process.load("RecoTracker/FinalTrackSelectors/selectHighPurity_cfi")
+#process.selectHighPurity.copyExtras = cms.untracked.bool(False)
+#process.selectHighPurity.vertices = cms.InputTag("offlinePrimaryVertices")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents))
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -25,4 +28,5 @@ process.demo = cms.EDAnalyzer('EleAnalyzer'
 )
 
 
-process.p = cms.Path(process.demo)
+process.p = cms.Path(
+    process.demo)
