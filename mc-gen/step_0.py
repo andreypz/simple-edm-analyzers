@@ -30,7 +30,8 @@ process.maxEvents = cms.untracked.PSet(
 # Input source
 process.source = cms.Source("LHESource",
                             fileNames = cms.untracked.vstring(
-    '/store/user/andrey/LHE_MAD/lhe_mad_LO_HiggsToMuMuGamma.lhe'
+    #'/store/user/andrey/LHE_MAD/lhe_mad_LO_HiggsToMuMuGamma.lhe'
+    '/store/user/andrey/LHE_MAD/hmumug_m120.lhe'
     )
                             )
 
