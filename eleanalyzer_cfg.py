@@ -3,7 +3,7 @@ import FWCore.ParameterSet.VarParsing as VarParsing
 
 
 options = VarParsing.VarParsing ('analysis')
-options.maxEvents = -1
+options.maxEvents = 2000
 options.loadFromFile('inputFiles','dalitz_short.txt')
 options.parseArguments()
 

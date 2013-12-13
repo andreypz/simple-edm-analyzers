@@ -38,6 +38,8 @@
 #include "DataFormats/EgammaReco/interface/SuperCluster.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrackFwd.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
 
 #include "DataFormats/EgammaCandidates/interface/Conversion.h"
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
@@ -229,6 +231,9 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       reco::GsfTrackRef gsf = iElectron->gsfTrack();
       reco::TrackRef    ctf = iElectron->closestTrack(); //this returns the closest ctf track
 
+      TLorentzVector gsf1;
+      gsf1.SetXYZM(gsf->px(), gsf->py(), gsf->pz(), 0);
+
       cout<<eee <<" ELECTRON,  Pt = "<<iElectron->pt()<<endl;
       
       if (gsf.isNonnull())
@@ -268,13 +273,13 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
       if (ntr>1){
         //there are ambigious tracks..
-        Float_t tr_Mll = (amb1+amb2).M();
-        Float_t tr_dR  = amb1.DeltaR(amb2);
-        Float_t tr_qT  = (amb1+amb2).Pt();
+        Float_t tr_Mll = (gsf1+amb1).M();
+        Float_t tr_dR  = gsf1.DeltaR(amb1);
+        Float_t tr_qT  = (gsf1+amb1).Pt();
         
-        hists->fillProfile(gen_Mll, tr_Mll, "gen_tr_Mll",";gen Mll;tr Mll", 100, 0,20, 0,20, 1,"");
-        hists->fillProfile(gen_qT, tr_qT,  "gen_tr_qT",";gen qT;tr qT", 100, 0,100, 0,100, 1,"");
-        hists->fillProfile(gen_dR, tr_dR, "genDr_trDr",";gen dR;tr dR", 100, 0,0.5, 0,0.5, 1,"");
+        hists->fillProfile(gen_Mll, tr_Mll, "gen_tr_Mll",";gen Mll;tr Mll", 100, 0,20,   0,20, 1,"");
+        hists->fillProfile(gen_qT, tr_qT,   "gen_tr_qT", ";gen qT;tr qT",   100, 0,100, 0,100, 1,"");
+        hists->fillProfile(gen_dR, tr_dR,   "genDr_trDr",";gen dR;tr dR",   100, 0,0.5, 0,0.5, 1,"");
       }
 
       nnn03=0, nnn04=0, ntr=0;
@@ -349,24 +354,76 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     // *** Conversions ** //
     // *** *** ** *******//
     
-    double conv_vtxProb[50];
-    double conv_lxy[50];
-    int conv_nHitsMax[50];
-    //int conv_eleind[50];
-
     edm::Handle<reco::BeamSpot> bsHandle;
     iEvent.getByLabel("offlineBeamSpot", bsHandle);
     const reco::BeamSpot &beamspot = *bsHandle.product();
 
-    edm::Handle<reco::ConversionCollection> hConversions;
-    iEvent.getByLabel("allConversions", hConversions);
+    Handle<reco::VertexCollection> primaryVtcs;
+    iEvent.getByLabel("offlinePrimaryVertices", primaryVtcs);
+    reco::VertexRef PV(primaryVtcs, 0);
 
+
+
+    Float_t conv_vtxProb=0, conv_lxy=0, conv_lxypv=0;
+    Int_t conv_nHitsMax=99;
+
+    int iel=-1;
+    for(reco::GsfElectronCollection::const_iterator gsfEle = electrons->begin(); gsfEle!=electrons->end(); ++gsfEle) {
+      iel++;      
+      int iconv=-1;
+      for (reco::ConversionCollection::const_iterator conv = hConversions->begin(); conv!= hConversions->end(); ++conv) {
+        iconv++;
+
+        reco::Vertex vtx = conv->conversionVertex();
+        if (vtx.isValid()) {
+
+          if (ConversionTools::matchesConversion(*gsfEle, *conv)) {
+            
+            conv_vtxProb = TMath::Prob( vtx.chi2(), vtx.ndof() );
+            math::XYZVector mom(conv->refittedPairMomentum());
+            double dbsx = vtx.x() - beamspot.position().x();   
+            double dbsy = vtx.y() - beamspot.position().y();
+            conv_lxy = (mom.x()*dbsx + mom.y()*dbsy)/mom.rho();
+            
+            double dpvx = vtx.x() - PV->x();   
+            double dpvy = vtx.y() - PV->y();
+            conv_lxypv = (mom.x()*dpvx + mom.y()*dpvy)/mom.rho();
+
+            conv_nHitsMax=0;
+            for (std::vector<uint8_t>::const_iterator it = conv->nHitsBeforeVtx().begin(); it!=conv->nHitsBeforeVtx().end(); ++it) {
+
+              cout<<"\t\t iconv = "<<iconv<<"  Hits before vertex: "<<(int)(*it)<<endl;
+              if ((*it)>conv_nHitsMax) conv_nHitsMax = (*it);
+            }
+
+            hists->fill1DHist(conv_lxy,      "conv_lxy",     "conv_lxy",      200,0,50,1,"");
+            hists->fill1DHist(conv_lxypv,    "conv_lxyPV",   "conv_lxyPV",    200,0,50,1,"");
+            hists->fill1DHist(conv_nHitsMax, "conv_nHitsMax","conv_nHitsMax", 15, 0,15,1,"");
+            hists->fill1DHist(conv_vtxProb,  "conv_vtxProb", "conv_vtxProv",  100,0,1, 1,"");
+
+            break;
+
+          }
+          
+        }
+      }
+    }
+
+    
+    /*
+      double conv_vtxProb[50];
+      double conv_lxy[50];
+      double conv_lxypv[50];
+      int conv_nHitsMax[50];
+      //int conv_eleind[50];
 
     int iconv=-1;
+
     for (reco::ConversionCollection::const_iterator conv = hConversions->begin(); conv!= hConversions->end(); ++conv) {
       iconv++;
       conv_vtxProb[iconv]=0.;
       conv_lxy[iconv]=0.;
+      conv_lxypv[iconv]=0.;
       conv_nHitsMax[iconv]=99;
       //conv_eleind[iconv] = -1;
       
@@ -382,14 +439,15 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
             double dbsx = vtx.x() - beamspot.position().x();   
             double dbsy = vtx.y() - beamspot.position().y();
             conv_lxy[iconv] = (mom.x()*dbsx + mom.y()*dbsy)/mom.rho();
+
+            double dpvx = vtx.x() - PV->x();   
+            double dpvy = vtx.y() - PV->y();
+            conv_lxypv[iconv] = (mom.x()*dpvx + mom.y()*dpvy)/mom.rho();
+
             conv_nHitsMax[iconv]=0;
             for (std::vector<uint8_t>::const_iterator it = conv->nHitsBeforeVtx().begin(); it!=conv->nHitsBeforeVtx().end(); ++it) {
               if ((*it)>conv_nHitsMax[iconv]) conv_nHitsMax[iconv] = (*it);
             }
-
-            hists->fill1DHist(conv_lxy[iconv],      "conv_lxy",     "conv_lxy",      200,0,50,1,"");
-            hists->fill1DHist(conv_nHitsMax[iconv], "conv_nHitsMax","conv_nHitsMax", 15, 0,15,1,"");
-            hists->fill1DHist(conv_vtxProb[iconv],  "conv_vtxProb", "conv_vtxProv",  100,0,1, 1,"");
 
             break;
           }
@@ -425,9 +483,7 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
       
     }
-
-
-
+    */
 
 
 
