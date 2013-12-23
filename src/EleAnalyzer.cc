@@ -370,6 +370,12 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     int iel=-1;
     for(reco::GsfElectronCollection::const_iterator gsfEle = electrons->begin(); gsfEle!=electrons->end(); ++gsfEle) {
       iel++;      
+      
+
+      hists->fill1DHist(gsfEle->convDist(),   "convDist","convDist", 200,0,50,1,"");
+      hists->fill1DHist(gsfEle->convDcot(),   "convDcot","convDcot", 200,-5,5,1,"");
+      hists->fill1DHist(gsfEle->convRadius(), "convRadius","convRadius", 200,0,50,1,"");
+
       int iconv=-1;
       for (reco::ConversionCollection::const_iterator conv = hConversions->begin(); conv!= hConversions->end(); ++conv) {
         iconv++;
@@ -408,82 +414,6 @@ void EleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         }
       }
     }
-
-    
-    /*
-      double conv_vtxProb[50];
-      double conv_lxy[50];
-      double conv_lxypv[50];
-      int conv_nHitsMax[50];
-      //int conv_eleind[50];
-
-    int iconv=-1;
-
-    for (reco::ConversionCollection::const_iterator conv = hConversions->begin(); conv!= hConversions->end(); ++conv) {
-      iconv++;
-      conv_vtxProb[iconv]=0.;
-      conv_lxy[iconv]=0.;
-      conv_lxypv[iconv]=0.;
-      conv_nHitsMax[iconv]=99;
-      //conv_eleind[iconv] = -1;
-      
-      reco::Vertex vtx = conv->conversionVertex();
-      if (vtx.isValid()) {
-        int iel=-1;
-        for(reco::GsfElectronCollection::const_iterator gsfEle = electrons->begin(); gsfEle!=electrons->end(); ++gsfEle) {
-          iel++;
-          if (ConversionTools::matchesConversion(*gsfEle, *conv)) {
-            //conv_eleind[iconv] = iel;
-            conv_vtxProb[iconv] = TMath::Prob( vtx.chi2(), vtx.ndof() );
-            math::XYZVector mom(conv->refittedPairMomentum());
-            double dbsx = vtx.x() - beamspot.position().x();   
-            double dbsy = vtx.y() - beamspot.position().y();
-            conv_lxy[iconv] = (mom.x()*dbsx + mom.y()*dbsy)/mom.rho();
-
-            double dpvx = vtx.x() - PV->x();   
-            double dpvy = vtx.y() - PV->y();
-            conv_lxypv[iconv] = (mom.x()*dpvx + mom.y()*dpvy)/mom.rho();
-
-            conv_nHitsMax[iconv]=0;
-            for (std::vector<uint8_t>::const_iterator it = conv->nHitsBeforeVtx().begin(); it!=conv->nHitsBeforeVtx().end(); ++it) {
-              if ((*it)>conv_nHitsMax[iconv]) conv_nHitsMax[iconv] = (*it);
-            }
-
-            break;
-          }
-          else{
-            for (reco::GsfTrackRefVector::const_iterator gtr = gsfEle->ambiguousGsfTracksBegin(); gtr != gsfEle->ambiguousGsfTracksEnd(); ++gtr)
-              {
-                if (ConversionTools::matchesConversion(*gtr, *conv)) {
-                  //conv_eleind[iconv] = iel;
-                  conv_vtxProb[iconv] = TMath::Prob( vtx.chi2(), vtx.ndof() );
-                  math::XYZVector mom(conv->refittedPairMomentum());
-                  double dbsx = vtx.x() - beamspot.position().x();   
-                  double dbsy = vtx.y() - beamspot.position().y();
-                  conv_lxy[iconv] = (mom.x()*dbsx + mom.y()*dbsy)/mom.rho();
-                  conv_nHitsMax[iconv]=0;
-                  for (std::vector<uint8_t>::const_iterator it = conv->nHitsBeforeVtx().begin(); it!=conv->nHitsBeforeVtx().end(); ++it) {
-                    if ((*it)>conv_nHitsMax[iconv]) conv_nHitsMax[iconv] = (*it);
-                  }
-
-
-                  hists->fill1DHist(conv_lxy[iconv],      "conv_amb_lxy",     "conv_lxy",      200,0,50,1,"");
-                  hists->fill1DHist(conv_nHitsMax[iconv], "conv_amb_nHitsMax","conv_nHitsMax", 15, 0,15,1,"");
-                  hists->fill1DHist(conv_vtxProb[iconv],  "conv_amb_vtxProb", "conv_vtxProv",  100,0,1, 1,"");
-
-                  break;
-                }
-                
-              }
-          }
-        }
-
-      }
-      
-
-      
-    }
-    */
 
 
 

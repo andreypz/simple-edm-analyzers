@@ -30,7 +30,9 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
     fileNames = cms.untracked.vstring(
-'/store/user/andrey/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/0d39c08b8f244e82d3c6638251c2a5f3/gen-sim_407_1_uSf.root'
+#'/store/user/andrey/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/0d39c08b8f244e82d3c6638251c2a5f3/gen-sim_407_1_uSf.root'
+ '/store/user/andrey/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/78f58012d01406e76b9b93e195d19b7e/gen-sim_100_1_p96.root'
+ 
     	)
 )
 
