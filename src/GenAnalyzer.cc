@@ -120,11 +120,21 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
           ++nmu;
         }
 
+
       if (it->pdgId() == zStarId && it->mother()->pdgId()==25) //
         {          
           cout<<"its a Z, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
           hists->fill1DHist(it->mass(),"z_mass","Z mass", 50,0,150,  1, "");
         }
+
+      if (it->pdgId() == 22 && it->mother()->pdgId() == 23) 
+        {          
+          cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
+          hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,0,10,  1, "");
+          gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy()); 
+        }
+      
+
 
       if (it->pdgId() == 22 && (it->mother()->pdgId() == 25 || it->mother()->pdgId() == zStarId)) //gamma from the higgs or a Z!
         {          

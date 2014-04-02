@@ -31,8 +31,7 @@ process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
     fileNames = cms.untracked.vstring(
 #'/store/user/andrey/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/MCFM_lord_hzgamma_8TeV_LHE_pythia6_v2/0d39c08b8f244e82d3c6638251c2a5f3/gen-sim_407_1_uSf.root'
- '/store/user/andrey/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/78f58012d01406e76b9b93e195d19b7e/gen-sim_100_1_p96.root'
- 
+'/store/user/andrey/Higgs_To_MuMuGamma_Dalitz_MH125_Mll_0to50_8TeV_MadgraphHEFT_pythia6/Higgs_To_MuMuGamma_Dalitz_MH125_Mll_0to50_8TeV_MadgraphHEFT_pythia6/0d39c08b8f244e82d3c6638251c2a5f3/gen-sim_100_1_Zlo.root',
     	)
 )
 
@@ -53,7 +52,7 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
     splitLevel = cms.untracked.int32(0),
     eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
     outputCommands = process.RAWSIMEventContent.outputCommands,
-    fileName = cms.untracked.string('redigi.root'),
+    fileName = cms.untracked.string('digi.root'),
     dataset = cms.untracked.PSet(
         filterName = cms.untracked.string(''),
         dataTier = cms.untracked.string('GEN-SIM-RAW')
