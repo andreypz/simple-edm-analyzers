@@ -13,7 +13,7 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
     #'file:../../decay0.root'
 
-    'file:gen-sim.root'
+    'file:mc-gen/gen-sim-zjpsigamma-4-mumu.root'
     #'/store/user/andrey/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/78f58012d01406e76b9b93e195d19b7e/gen-sim_100_1_p96.root',
     #'/store/user/andrey/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/Higgs_to_JpsiGamma_MH125_8TeV_PYTHIA8/78f58012d01406e76b9b93e195d19b7e/gen-sim_101_1_GfD.root',
 

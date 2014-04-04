@@ -2,7 +2,7 @@
 //
 // Package:    GenAnalyzer
 // Class:      GenAnalyzer
-// 
+//
 /**\class GenAnalyzer GenAnalyzer.cc NWU/GenAnalyzer/src/GenAnalyzer.cc
 
  Description: [one line class summary]
@@ -89,15 +89,15 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 {
   if(!iEvent.isRealData()) {
     cout<<"event  "<<iEvent.id().event()<<endl;
- 
+
     Handle<reco::GenParticleCollection> genParticleColl;
     iEvent.getByLabel("genParticles", genParticleColl);
 
     vector<TLorentzVector> mu_plus, mu_minus, el_plus, el_minus;
     TLorentzVector gamma;
-
-    //Int_t zStarId = 23; //normal
-    Int_t zStarId = 443; //jpsi
+    TLorentzVector jpsi;
+    Int_t zStarId = 23; //normal
+    //Int_t zStarId = 443; //jpsi
     //Int_t zStarId = 3000001; //a hack
 
     UInt_t nmu=0, nel = 0;
@@ -111,8 +111,18 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
             el_minus.push_back(TLorentzVector(it->px(), it->py(), it->pz(), it->energy()));
           ++nel;
         }
-      if (abs(it->pdgId()) == 13 && it->mother()->pdgId() == zStarId)
+
+      if (it->pdgId() == 443)
         {
+          cout<<"* \t Hooray!, we found a jPsi; its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
+          jpsi = TLorentzVector(it->px(), it->py(), it->pz(), it->energy());
+
+        }
+
+
+      if (abs(it->pdgId()) == 13 && it->mother()->pdgId() == 443)
+        {
+          cout<<nmu<<"  * \t \t Yes!, we found a muon; its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
           if (it->pdgId() == 13)
             mu_plus.push_back(TLorentzVector(it->px(), it->py(), it->pz(), it->energy()));
           if (it->pdgId() == -13)
@@ -120,36 +130,38 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
           ++nmu;
         }
 
-
       if (it->pdgId() == zStarId && it->mother()->pdgId()==25) //
-        {          
-          cout<<"its a Z, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
+        //if (it->pdgId() == zStarId && it->mother()->pdgId()==25) //
+        {
+          cout<<"It is a Z, its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
           hists->fill1DHist(it->mass(),"z_mass","Z mass", 50,0,150,  1, "");
         }
 
-      if (it->pdgId() == 22 && it->mother()->pdgId() == 23) 
-        {          
-          cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
-          hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,0,10,  1, "");
-          gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy()); 
+      if (it->pdgId() == 22 && it->mother()->pdgId() == 23)
+        {
+          cout<<"It is gamma! its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
+          hists->fill1DHist(it->mass(),"gamma_mass_z","gamma mass", 100,-1,1,  1, "");
+          gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy());
         }
-      
 
 
+      /*
       if (it->pdgId() == 22 && (it->mother()->pdgId() == 25 || it->mother()->pdgId() == zStarId)) //gamma from the higgs or a Z!
-        {          
-          cout<<"its a gamma, it's status = "<<it->status()<<";\t  it's mother is: "<<it->mother()->pdgId()<<endl;
-          hists->fill1DHist(it->mass(),"gamma_mass","gamma mass", 100,0,10,  1, "");
-          gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy()); 
+        {
+          cout<<"its a gamma, it's status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
+          hists->fill1DHist(it->mass(),"gamma_mass_h","gamma mass", 100,0,10,  1, "");
+          gamma = TLorentzVector(it->px(), it->py(), it->pz(), it->energy());
         }
-      
+      */
 
     }
-    
+
     hists->fill1DHist(nmu,"nmu","Number of muons from a Z", 10,0,10,  1, "");
     hists->fill1DHist(nel,"nel","Number of electrons from a Z", 10,0,10,  1, "");
-    
-    
+
+    hists->fill1DHist((jpsi+gamma).M(),"m_jpsigamma","M_{J/Psi #gamma}", 50, 50,100,  1, "");
+
+
     TLorentzVector z(0,0,0,0);
     TLorentzVector h(0,0,0,0);
     TLorentzVector l1,l2;
@@ -164,9 +176,12 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         l2 = el_minus[0];
       }
 
-    hists->fill1DHist((l1+l2).M(),"ll_mass","ll mass", 50,0,150,  1, "");
+    hists->fill1DHist((l1+l2).M(),"ll_mass",    "ll mass", 50,0,150, 1, "");
+    hists->fill1DHist((l1+l2).M(),"ll_mass_low","ll mass", 50,0,10,  1, "");
 
     if (nmu>=2)
+      hists->fill1DHist((l1+l2+gamma).M(),"llg_mass","LLgamma mass", 50,0,150,  1, "");
+    /*
       //if (nmu>=2 || nel>=2)
       {
         z = l1 + l2;
@@ -195,31 +210,31 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         l1_CM.Boost(b1);
         l1_CM.Transform(rotation);
         l2_CM.Boost(b1);
-        l2_CM.Transform(rotation); 
+        l2_CM.Transform(rotation);
 
         Float_t costheta = z_CM.Vect().Unit().Dot(h.Vect().Unit());
 
-        //cout<<"\t\t z_CM before rotation  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl; 
+        //cout<<"\t\t z_CM before rotation  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl;
         z_CM.Transform(rotation);
-        //cout<<"\t\t z_CM after rotation  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl; 
+        //cout<<"\t\t z_CM after rotation  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl;
 
         TLorentzVector hRot(h);
-        
+
         hRot.Transform(rotation);
         Float_t c3 = hRot.CosTheta();
-        Float_t c2 = cos(z_CM.Angle(hRot.Vect()));    
+        Float_t c2 = cos(z_CM.Angle(hRot.Vect()));
 
-        cout<<"higgs not bosstedd  x = "<<h.X()<<"  y="<<h.Y()<<"  z="<<h.Z()<<"  t="<<h.T()<<endl; 
-        cout<<" higgs bosstedd  x = "<<h_CM.X()<<"  y="<<h_CM.Y()<<"  z="<<h_CM.Z()<<"  t="<<h_CM.T()<<endl; 
-        cout<<"\t\t z bosstedd  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl; 
+        cout<<"higgs not bosstedd  x = "<<h.X()<<"  y="<<h.Y()<<"  z="<<h.Z()<<"  t="<<h.T()<<endl;
+        cout<<" higgs bosstedd  x = "<<h_CM.X()<<"  y="<<h_CM.Y()<<"  z="<<h_CM.Z()<<"  t="<<h_CM.T()<<endl;
+        cout<<"\t\t z bosstedd  x = "<<z_CM.X()<<"  y="<<z_CM.Y()<<"  z="<<z_CM.Z()<<"  t="<<z_CM.T()<<endl;
 
 
-          
+
         cout<<"Debug \n"<<"\t\t c1 = "<<costheta<<"\n \t\t c2 = "<<c2<<"\n \t\t c3 = "<<c3<<endl;
 
         if (fabs(costheta)>1 || isnan(costheta))
           throw cms::Exception("This is exceptional! ")<<"Cosine is greater than 1 or nan,  wha?"<<endl;
-        
+
 
         //Boosting to Z frame from a CM frame!
         TVector3 b2 = -1*z_CM.BoostVector();
@@ -227,17 +242,17 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         TLorentzVector l1_inZFrame(l1_CM);
         TLorentzVector l2_inZFrame(l2_CM);
         l1_inZFrame.Boost(b2);
-          
+
         //Angle between the lepton(+) and a Z direction in the Z rest frame
         Float_t costheta1 = l1_inZFrame.CosTheta();
         Float_t phi       = l1_inZFrame.Phi();
         //cout<<"l1 in Z frame: px = "<<l1_inZFrame.Px()<<"  py = "<<l1_inZFrame.Py()<<endl;
         //cout<<"l2 in Z frame: px = "<<l2_inZFrame.Px()<<"  py = "<<l2_inZFrame.Py()<<endl;
 
-        
+
         c2 = (l1_CM.E() - l2_CM.E())/ (l1_CM.Vect() + l2_CM.Vect()).Mag(); //from a formula
-  
-          
+
+
         //if (abs(costheta1)>1 || isnan(costheta1))
         // throw cms::Exception("This is exceptional! ")<<"Cosine is greater than 1,  wha?"<<endl;
 
@@ -258,7 +273,7 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         //cout<<"Debug \n"<<"\t\t c1 = "<<costheta1<<"\n \t\t c2 = "<<c2<<"\n \t\t c3 = "<<c3<<"\n \t\t c4 = "<<endl;
         //costheta1 = c3;
 
-        
+
         TString ll("ll"), lepton("lepton");
         if (nmu>=2)
           ll="mumu";
@@ -285,14 +300,15 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         hists->fill1DHist(gamma.Pt(),      Form("%s_gamma_pt", ll.Data()),"Pt of gamma", 50, 0,150,  1, "");
         hists->fill1DHist(gamma.Eta(),     Form("%s_gamma_eta", ll.Data()),"Eta of gamma", 50, -3,3,  1, "");
         hists->fill1DHist(gamma.Phi(),     Form("%s_gamma_phi", ll.Data()),"Phi of gamma", 50, -TMath::Pi(),TMath::Pi(),  1, "");
-                
+
 
         p_lplus->SetPxPyPzE(l1.Px(), l1.Py(), l1.Pz(), l1.E());
         p_lminus->SetPxPyPzE(l2.Px(), l2.Py(), l2.Pz(), l2.E());
         p_gamma->SetPxPyPzE(gamma.Px(), gamma.Py(), gamma.Pz(), gamma.E());
         ktree->Fill();
       }
-    
+    */
+
   }
 
   else
@@ -312,7 +328,7 @@ void GenAnalyzer::beginJob()
   ktree->Branch("l_minus",&p_lminus,6400,0);
   ktree->Branch("l_plus",&p_lplus,6400,0);
   ktree->Branch("gamma",&p_gamma,6400,0);
-  
+
 
   hists   = new HistManager(outFile);
 
@@ -321,7 +337,7 @@ void GenAnalyzer::beginJob()
 
 }
 
-void  GenAnalyzer::endJob() 
+void  GenAnalyzer::endJob()
 {
   outFile->cd();
   hists->writeHists(outFile);

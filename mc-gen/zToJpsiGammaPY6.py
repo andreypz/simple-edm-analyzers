@@ -19,7 +19,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(5000)
+    input = cms.untracked.int32(50)
 )
 
 # Input source
@@ -89,14 +89,20 @@ process.generator = cms.EDFilter("Pythia6GeneratorFilter",
                                     'MDME(177,1)=0     !Z decay into c cbar',
                                     'MDME(178,1)=0     !Z decay into b bbar',
                                     'MDME(179,1)=0     !Z decay into t tbar',
-                                    'MDME(182,1)=1     !Z decay into e- e+',
+                                    'MDME(182,1)=0     !Z decay into e- e+',
                                     'MDME(183,1)=0     !Z decay into nu_e nu_ebar',
                                     # ########   Nasty hack implemented here  ###################
                                     
                                     'MDME(184,1)=1     !Z decay into mu- mu+',
-                                    'KFDP(184,1)=443   ! one mu of the Z decay to J/Psi (hopefully)', 
-                                    
+                                    'KFDP(184,1)=443   ! replace one mu of the Z decay to J/Psi (hopefully)', 
+                                    'KFDP(184,2)=22    ! a second mu replace with gamma', 
+                                    # Now decay J/Psi to mu+ mu-
+                                    'MDME(858,1)=0     ! J/psi -> ee turned OFF',
+                                    'MDME(859,1)=1     ! J/psi -> mumu turned ON',
+                                    'MDME(860,1)=0     ! J/psi -> random turned OFF',
                                     # #### End of nasty hack  ###
+                                    
+
                                     'MDME(185,1)=0     !Z decay into nu_mu nu_mubar',
                                     'MDME(186,1)=0     !Z decay into tau- tau+',
                                     'MDME(187,1)=0     !Z decay into nu_tau nu_taubar',
@@ -119,6 +125,6 @@ process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
 process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.endjob_step,process.RAWSIMoutput_step)
 # filter all path with the production filter sequence
 for path in process.paths:
-	#getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
-	getattr(process,path)._seq = process.generator 
+	getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
+	#getattr(process,path)._seq = process.generator 
 
