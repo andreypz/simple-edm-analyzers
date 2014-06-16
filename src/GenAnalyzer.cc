@@ -123,7 +123,8 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         }
 
 
-      if (abs(it->pdgId()) == 13 && it->mother()->pdgId() == 443)
+      if (abs(it->pdgId()) == 13 && abs(it->mother()->pdgId()) < 24 && it->status()==3)
+        //if (abs(it->pdgId()) == 13 && it->mother()->pdgId() == 443)
         {
           cout<<nmu<<"  * \t \t Yes!, we found a muon; its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
           if (it->pdgId() == 13)
@@ -140,7 +141,8 @@ void GenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
           hists->fill1DHist(it->mass(),"z_mass","Z mass", 50,0,150,  1, "");
         }
 
-      if (it->pdgId() == 22 && it->mother()->pdgId() == 23)
+      if (it->pdgId() == 22 && abs(it->mother()->pdgId()) < 24 && it->status()==3)
+        //if (it->pdgId() == 22 && it->mother()->pdgId() == 23)
         {
           cout<<"It is gamma! its status = "<<it->status()<<";\t  its mother is: "<<it->mother()->pdgId()<<endl;
           hists->fill1DHist(it->mass(),"gamma_mass_z","gamma mass", 100,-1,1,  1, "");

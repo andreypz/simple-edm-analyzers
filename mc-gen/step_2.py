@@ -31,7 +31,8 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     secondaryFileNames = cms.untracked.vstring(),
     fileNames = cms.untracked.vstring(
-'/store/user/andrey/Higgs_To_MuMuGamma_Dalitz_MH125_Mll_0to50_8TeV_MadgraphHEFT_pythia6/REDIGI/c2c62f2f83a6f45a9e59035dcd0cf6c3/redigi_174_1_F9c.root'
+#'/store/user/andrey/Higgs_To_MuMuGamma_Dalitz_MH125_Mll_0to50_8TeV_MadgraphHEFT_pythia6/REDIGI/c2c62f2f83a6f45a9e59035dcd0cf6c3/redigi_174_1_F9c.root'
+'/store/user/lpchzg/prod/Dalitz/andrey/MuMuGamma_DalitzBKG_Mll_0to50_8TeV_Madgraph_pythia6/DIGI/b537ec378d27571f2136875baab5e18f/digi_100_1_AyA.root'
     )
 )
 

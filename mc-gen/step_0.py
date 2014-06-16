@@ -29,14 +29,14 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(500)
+    input = cms.untracked.int32(5)
 )
 
 # Input source
 process.source = cms.Source("LHESource",
                             fileNames = cms.untracked.vstring(
     #'/store/user/lpchzg/LHE/Dalitz-VH/hmumug_m140.lhe'
-    '/store/user/lpchzg/LHE/Dalitz-BKG/mumugamma_dalitz_muonmass_run02.lhe'
+    '/store/user/lpchzg/LHE/Dalitz-BKG/mumugamma_dalitz_muonmass_dRll_dRlg_run05.lhe'
     )
                             )
 
@@ -110,6 +110,6 @@ process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
 process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.endjob_step,process.RAWSIMoutput_step)
 # filter all path with the production filter sequence
 for path in process.paths:
-	getattr(process,path)._seq = process.generator 
-	#getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
+	#getattr(process,path)._seq = process.generator # hmm, this does not  actually produce genparticles collection... 
+	getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
 
